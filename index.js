@@ -6,7 +6,7 @@ let router = require('koa-router')();
 
 module.exports = function(opts, app){
 
-    if (!opts || !opts.sso_server || !opts.client) {
+    if (!opts || !opts.sso_server || !opts.sso_client) {
         throw new Error('the opts is illegal.');
     }
     if (!app || opts.use !== 'function') {
@@ -14,7 +14,7 @@ module.exports = function(opts, app){
     }
 
     app.keys = app.keys || ['koa-sso-auth-cli-2016','keys'];
-    if (!app.context.sessionKey) app.use(koa_session)(app);
+    if (!app.context.sessionKey) app.use(koa_session(app));
 
     let sso_server = opts['sso_server'];
     let sso_client = opts['sso_client'];
@@ -25,7 +25,7 @@ module.exports = function(opts, app){
     router.get('/api/getToken', getToken(sso_server, auth_callback_url));
     app.use(router.routes()).use(router.allowedMethods());
 
-    app.use(auth(sso_server, auth_callback_url));
+    return auth(sso_server, auth_callback_url);
 };
 
 function auth(sso_server, auth_callback_url) {
