@@ -9,7 +9,7 @@ module.exports = function(opts, app){
     if (!opts || !opts.sso_server || !opts.sso_client) {
         throw new Error('the opts is illegal.');
     }
-    if (!app || opts.use !== 'function') {
+    if (!app || typeof app.use !== 'function') {
         throw new Error('the app is illegal.');
     }
 
