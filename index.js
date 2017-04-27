@@ -31,7 +31,7 @@ module.exports = function(opts, app){
 function auth(sso_server, auth_callback_url) {
     return function *(next) {
         let token = this.session.token;
-        this.session.currentUrl = this.request.path;
+        this.session.currentUrl = this.headers['referer'];
 
         if (!token) {
             let redirectUrl = sso_server + '?auth_callback='+ auth_callback_url;
