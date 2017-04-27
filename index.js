@@ -43,7 +43,6 @@ function auth(sso_server, auth_callback_url) {
             let json = JSON.parse(jsonStr);
 
             if (json.status) {
-                this.session.account = json.result;
                 yield next;
             } else {
                 let redirectUrl = sso_server + '?auth_callback='+ auth_callback_url;
