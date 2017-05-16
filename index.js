@@ -68,6 +68,15 @@ function getToken(sso_server, auth_callback_url) {
             if (json.status) {
                 let redirectUrl = this.session.currentUrl || '/';
                 this.session.token = json.result;
+
+                let jsonAccountStr = yield rp(sso_server + '/api/getUserInfo?token=' + json.result);
+                let accountStr = JSON.parse(jsonAccountStr);
+                if (!json.status) {
+                    console.warn('Get the account failed, because ' + json.message);
+                } else {
+                    this.session.account = JSON.parse(accountStr);
+                }
+
                 this.redirect(redirectUrl);
 
                 console.log('Get the token: ' + json.result + ', and redirect to ' + redirectUrl);
