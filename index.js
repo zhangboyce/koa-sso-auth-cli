@@ -31,24 +31,26 @@ module.exports = function(opts, app){
 function auth(sso_server, auth_callback_url) {
     return function *(next) {
         let token = this.session.token;
-        this.session.currentUrl = this.headers['referer'];
+        let redirectUrl = sso_server + '?auth_callback='+ auth_callback_url;
 
-        if (!token) {
-            let redirectUrl = sso_server + '?auth_callback='+ auth_callback_url;
-            this.redirect(redirectUrl);
-            console.log('No token, redirect to ' + redirectUrl);
-        }else {
+        if (token) {
             let token_check_url = sso_server + '/api/token/check?token=' + token;
             let jsonStr = yield rp(token_check_url);
             let json = JSON.parse(jsonStr);
-
             if (json.status) {
                 yield next;
-            } else {
-                let redirectUrl = sso_server + '?auth_callback='+ auth_callback_url;
-                this.redirect(redirectUrl);
-                console.log('Check token result: ' + jsonStr + ', redirect to ' + redirectUrl);
+                return;
             }
+            console.log('Check token result: ' + jsonStr + ', redirect to ' + redirectUrl);
+        }else {
+            console.log('No token, redirect to ' + redirectUrl);
+        }
+
+        if (!this.headers['x-requested-with'] ||
+            this.headers['x-requested-with'].toLowerCase() !== 'xmlhttprequest') {
+
+            this.session.currentUrl = this.req.url + (this.req.search || '') ;
+            this.redirect(redirectUrl);
         }
     }
 }
@@ -58,9 +60,7 @@ function getToken(sso_server, auth_callback_url) {
         let code = this.query.code;
         console.log('Get token by code: ' + code);
 
-        if (!code) {
-            this.body = { status: false, message: 'Not found code.' };
-        } else {
+        if (code) {
             let code_check_url = sso_server + '/api/code/check?code=' + code;
             let jsonStr = yield rp(code_check_url);
             let json = JSON.parse(jsonStr);
@@ -78,7 +78,6 @@ function getToken(sso_server, auth_callback_url) {
                 }
 
                 this.redirect(redirectUrl);
-
                 console.log('Get the token: ' + json.result + ', and redirect to ' + redirectUrl);
             } else {
                 let redirectUrl = sso_server + '?auth_callback='+ auth_callback_url;
@@ -86,6 +85,9 @@ function getToken(sso_server, auth_callback_url) {
 
                 console.warn('Get the token result:  ' + jsonStr + ', and redirect to ' + redirectUrl);
             }
+
+        } else {
+            this.body = { status: false, message: 'Not found code.' };
         }
     }
 }
