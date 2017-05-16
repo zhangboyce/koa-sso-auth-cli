@@ -70,11 +70,11 @@ function getToken(sso_server, auth_callback_url) {
                 this.session.token = json.result;
 
                 let jsonAccountStr = yield rp(sso_server + '/api/getUserInfo?token=' + json.result);
-                let accountStr = JSON.parse(jsonAccountStr);
-                if (!json.status) {
-                    console.warn('Get the account failed, because ' + json.message);
+                let jsonAccount = JSON.parse(jsonAccountStr);
+                if (!jsonAccount.status) {
+                    console.warn('Get the account failed, because ' + jsonAccount.message);
                 } else {
-                    this.session.account = JSON.parse(accountStr);
+                    this.session.account = JSON.parse(jsonAccount.result);
                 }
 
                 this.redirect(redirectUrl);
