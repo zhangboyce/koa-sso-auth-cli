@@ -17,24 +17,25 @@ module.exports = function(opts, app){
     if (!app.context.sessionKey) app.use(koa_session(app));
 
     let sso_server = opts['sso_server'];
+    let sso_api_server = opts['sso_api_server'] || sso_server ;
     let sso_client = opts['sso_client'];
 
     let auth_callback_url = sso_client + '/api/getToken';
     auth_callback_url = encodeURIComponent(auth_callback_url);
 
-    router.get('/api/getToken', getToken(sso_server, auth_callback_url));
+    router.get('/api/getToken', getToken(sso_server, sso_api_server, auth_callback_url));
     app.use(router.routes()).use(router.allowedMethods());
 
-    return auth(sso_server, auth_callback_url);
+    return auth(sso_server, sso_api_server , auth_callback_url);
 };
 
-function auth(sso_server, auth_callback_url) {
+function auth(sso_server, sso_api_server , auth_callback_url) {
     return function *(next) {
         let token = this.session.token;
         let redirectUrl = sso_server + '?auth_callback='+ auth_callback_url;
 
         if (token) {
-            let token_check_url = sso_server + '/api/token/check?token=' + token;
+            let token_check_url = sso_api_server + '/api/token/check?token=' + token;
             let jsonStr = yield rp(token_check_url);
             let json = JSON.parse(jsonStr);
             if (json.status) {
@@ -55,13 +56,13 @@ function auth(sso_server, auth_callback_url) {
     }
 }
 
-function getToken(sso_server, auth_callback_url) {
+function getToken(sso_server, sso_api_server,  auth_callback_url) {
     return function *() {
         let code = this.query.code;
         console.log('Get token by code: ' + code);
 
         if (code) {
-            let code_check_url = sso_server + '/api/code/check?code=' + code;
+            let code_check_url = sso_api_server + '/api/code/check?code=' + code;
             let jsonStr = yield rp(code_check_url);
             let json = JSON.parse(jsonStr);
 
@@ -69,7 +70,7 @@ function getToken(sso_server, auth_callback_url) {
                 let redirectUrl = this.session.currentUrl || '/';
                 this.session.token = json.result;
 
-                let jsonAccountStr = yield rp(sso_server + '/api/getUserInfo?token=' + json.result);
+                let jsonAccountStr = yield rp(sso_api_server + '/api/getUserInfo?token=' + json.result);
                 let jsonAccount = JSON.parse(jsonAccountStr);
                 if (!jsonAccount.status) {
                     console.warn('Get the account failed, because ' + jsonAccount.message);
