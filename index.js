@@ -4,7 +4,9 @@ let koa_session = require('koa-session');
 let rp = require('request-promise');
 let router = require('koa-router')();
 
-module.exports = function(opts, app){
+let AuthorizationUtils = require('./AuthorizationUtils');
+
+function SSOMiddleware(opts, app){
 
     if (!opts || !opts.sso_server || !opts.sso_client) {
         throw new Error('the opts is illegal.');
@@ -19,6 +21,16 @@ module.exports = function(opts, app){
     let sso_server = opts['sso_server'];
     let sso_api_server = opts['sso_api_server'] || sso_server ;
     let sso_client = opts['sso_client'];
+    rp(sso_api_server + '/api/getModules').then(body => {
+        let moduleJson = JSON.parse(body);
+        if (!moduleJson.status) {
+            console.error('Get ATO modules fail.' + jsonAccount.message);
+            throw 'Get ATO modules fail.';
+        } else {
+            AuthorizationUtils.initBuild(moduleJson.result);
+            console.log('Auth is runing.');
+        }
+    });
 
     let auth_callback_url = sso_client + '/api/getToken';
     auth_callback_url = encodeURIComponent(auth_callback_url);
@@ -92,3 +104,6 @@ function getToken(sso_server, sso_api_server,  auth_callback_url) {
         }
     }
 }
+
+
+module.exports = {SSOMiddleware, AuthorizationUtils};
