@@ -24,7 +24,7 @@ function SSOMiddleware(opts, app){
     rp(sso_api_server + '/api/getModules').then(body => {
         let moduleJson = JSON.parse(body);
         if (!moduleJson.status) {
-            console.error('Get ATO modules fail.' + jsonAccount.message);
+            console.error('Get ATO modules fail.');
             throw 'Get ATO modules fail.';
         } else {
             AuthorizationUtils.initBuild(moduleJson.result);
