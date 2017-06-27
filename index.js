@@ -87,7 +87,7 @@ function getToken(sso_server, sso_api_server,  auth_callback_url) {
                 if (!jsonAccount.status) {
                     console.warn('Get the account failed, because ' + jsonAccount.message);
                 } else {
-                    this.session.account = JSON.parse(jsonAccount.result);
+                    this.session.account = jsonAccount.result;
                 }
 
                 this.redirect(redirectUrl);
