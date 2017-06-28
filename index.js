@@ -5,10 +5,32 @@ let rp = require('request-promise');
 let router = require('koa-router')();
 
 let AuthorizationUtils = require('./AuthorizationUtils');
+let SSO_API_Client = require('./SSO_API_Client');
 
-function SSOMiddleware(opts, app){
+let defaultOpts;
 
-    if (!opts || !opts.sso_server || !opts.sso_client) {
+function * SSOCliInit(opts) {
+    if (!opts || !opts.sso_api_server || !opts.sso_server || !opts.sso_client || !opts.default_module) {
+        throw new Error('the opts is illegal.');
+    }
+    defaultOpts = opts;
+
+    SSO_API_Client.setDefaultAPIServer(opts.sso_api_server);
+
+    let modules = yield SSO_API_Client.getModules(opts.sso_api_server);
+    if (modules) {
+        AuthorizationUtils.setDefaultModule(opts.default_module);
+        AuthorizationUtils.initBuild(modules);
+        console.log('Auth is runing.');
+    } else {
+        console.error('Get ATO modules fail.');
+        throw 'Get ATO modules fail.';
+    }
+}
+
+function SSOMiddleware(app, opts = defaultOpts){
+
+    if (!opts || !opts.sso_api_server || !opts.sso_server || !opts.sso_client) {
         throw new Error('the opts is illegal.');
     }
     if (!app || typeof app.use !== 'function') {
@@ -21,16 +43,6 @@ function SSOMiddleware(opts, app){
     let sso_server = opts['sso_server'];
     let sso_api_server = opts['sso_api_server'] || sso_server ;
     let sso_client = opts['sso_client'];
-    rp(sso_api_server + '/api/getModules').then(body => {
-        let moduleJson = JSON.parse(body);
-        if (!moduleJson.status) {
-            console.error('Get ATO modules fail.');
-            throw 'Get ATO modules fail.';
-        } else {
-            AuthorizationUtils.initBuild(moduleJson.result);
-            console.log('Auth is runing.');
-        }
-    });
 
     let auth_callback_url = sso_client + '/api/getToken';
     auth_callback_url = encodeURIComponent(auth_callback_url);
@@ -44,9 +56,20 @@ function SSOMiddleware(opts, app){
 function auth(sso_server, sso_api_server , auth_callback_url) {
     return function *(next) {
         let token = this.session.token;
+        if(!AuthorizationUtils.checkKoaDefaultModule(this)) {
+            let account = yield SSO_API_Client.getUserInfo(token, sso_api_server);
+            if (account) {
+                this.session.account = account;
+            }
+            if(!AuthorizationUtils.checkKoaDefaultModule(this)) {
+                this.body = '404!';
+                return;
+            }
+        }
+
         let redirectUrl = sso_server + '?auth_callback='+ auth_callback_url;
 
-        if (token) {
+        if (AuthorizationUtils.checkKoaDefaultModule(this) && token) {
             let token_check_url = sso_api_server + '/api/token/check?token=' + token;
             let jsonStr = yield rp(token_check_url);
             let json = JSON.parse(jsonStr);
@@ -61,9 +84,10 @@ function auth(sso_server, sso_api_server , auth_callback_url) {
 
         if (!this.headers['x-requested-with'] ||
             this.headers['x-requested-with'].toLowerCase() !== 'xmlhttprequest') {
-
             this.session.currentUrl = this.req.url + (this.req.search || '') ;
             this.redirect(redirectUrl);
+        }else {
+            this.body = {errcode: 10000, errmsg: "can not access this url"};
         }
     }
 }
@@ -80,14 +104,12 @@ function getToken(sso_server, sso_api_server,  auth_callback_url) {
 
             if (json.status) {
                 let redirectUrl = this.session.currentUrl || '/';
-                this.session.token = json.result;
+                let token = json.result;
+                this.session.token = token;
 
-                let jsonAccountStr = yield rp(sso_api_server + '/api/getUserInfo?token=' + json.result);
-                let jsonAccount = JSON.parse(jsonAccountStr);
-                if (!jsonAccount.status) {
-                    console.warn('Get the account failed, because ' + jsonAccount.message);
-                } else {
-                    this.session.account = jsonAccount.result;
+                let account = yield SSO_API_Client.getUserInfo(token, sso_api_server);
+                if (account) {
+                    this.session.account = account;
                 }
 
                 this.redirect(redirectUrl);
@@ -95,7 +117,6 @@ function getToken(sso_server, sso_api_server,  auth_callback_url) {
             } else {
                 let redirectUrl = sso_server + '?auth_callback='+ auth_callback_url;
                 this.redirect(redirectUrl);
-
                 console.warn('Get the token result:  ' + jsonStr + ', and redirect to ' + redirectUrl);
             }
 
@@ -106,4 +127,4 @@ function getToken(sso_server, sso_api_server,  auth_callback_url) {
 }
 
 
-module.exports = {SSOMiddleware, AuthorizationUtils};
+module.exports = {SSOMiddleware, AuthorizationUtils, SSO_API_Client, SSOCliInit};

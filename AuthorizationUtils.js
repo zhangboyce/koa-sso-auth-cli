@@ -10,7 +10,7 @@ function initBuild(moduleList) {
     let map = {};
     for(let m of modules) {
         let authMap = {};
-        let t = {id: m._id, name: m.name, authMap};
+        let t = {id: m._id, name: m.name, host: m.host, icon: m.icon, cover: m.cover, authMap};
         for(let auth of _.flatten(m.authorizations)) {
             auth.authValue = Math.pow(2, auth.value);
             authMap[auth.id] = auth;
@@ -95,6 +95,21 @@ function checkClient(authList, module) {
     return checkAuthList(module, clientAuth, authList);
 }
 
+function checkKoaDefaultModule(ctx) {
+    let module = defaultModule;
+    if(!module) {
+        throw '没有指定module，也没有默认的module';
+    }
+
+    let account = ctx.session && ctx.session.account;
+    if(!account) {
+        return false;
+    }
+
+    return account.authorizations &&
+        (account.authorizations.accountAuth[module] != null);
+}
+
 function checkKoaSession(ctx, authList, module) {
     module = module || defaultModule;
     if(!module) {
@@ -132,6 +147,17 @@ function listHasAuthTenancies(tenancyAuthMap, module, auth) {
     return results;
 }
 
+function listHasAuthModules(authMap = clientAuth) {
+    if(!authMap) {
+        return null;
+    }
+    return _.map(_.filter(modules, m => {
+        return authMap[m._id] != null;
+    }), m => ({
+        id: m._id, name: m.name, host: m.host, icon: m.icon, cover: m.cover
+    }));
+}
+
 function getModules() {
     return modules;
 }
@@ -146,9 +172,11 @@ module.exports = {
     check,
     checkAuthList,
     checkKoaSession,
+    checkKoaDefaultModule,
     checkClient,
     setDefaultModule,
     setClient,
     listHasAuthTenancies,
+    listHasAuthModules,
     getModules
 };
