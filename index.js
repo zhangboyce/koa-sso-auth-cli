@@ -56,24 +56,23 @@ function SSOMiddleware(app, opts = defaultOpts){
 function auth(sso_server, sso_api_server , auth_callback_url) {
     return function *(next) {
         let token = this.session.token;
-        if(!AuthorizationUtils.checkKoaDefaultModule(this)) {
-            let account = yield SSO_API_Client.getUserInfo(token, sso_api_server);
-            if (account) {
-                this.session.account = account;
-            }
-            if(!AuthorizationUtils.checkKoaDefaultModule(this)) {
-                this.body = '404!';
-                return;
-            }
-        }
-
         let redirectUrl = sso_server + '?auth_callback='+ auth_callback_url;
-
         if (token) {
+
             let token_check_url = sso_api_server + '/api/token/check?token=' + token;
             let jsonStr = yield rp(token_check_url);
             let json = JSON.parse(jsonStr);
             if (json.status) {
+                if(!AuthorizationUtils.checkKoaDefaultModule(this)) {
+                    let account = yield SSO_API_Client.getUserInfo(token, sso_api_server);
+                    if (account) {
+                        this.session.account = account;
+                    }
+                    if(!AuthorizationUtils.checkKoaDefaultModule(this)) {
+                        this.body = '404!';
+                        return;
+                    }
+                }
                 yield next;
                 return;
             }
