@@ -69,7 +69,7 @@ function auth(sso_server, sso_api_server , auth_callback_url) {
 
         let redirectUrl = sso_server + '?auth_callback='+ auth_callback_url;
 
-        if (AuthorizationUtils.checkKoaDefaultModule(this) && token) {
+        if (token) {
             let token_check_url = sso_api_server + '/api/token/check?token=' + token;
             let jsonStr = yield rp(token_check_url);
             let json = JSON.parse(jsonStr);
