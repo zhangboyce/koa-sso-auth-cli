@@ -22,7 +22,7 @@ function * getMPList(token, api_server = default_api_server) {
 }
 
 function * getMpAccessToken(token, mpId, api_server = default_api_server) {
-    return yield getCommonTokenData(token, '/api/getMPList/' + mpId, api_server);
+    return yield getCommonTokenData(token, '/api/getMpAccessToken/' + mpId, api_server);
 }
 
 function * getCommonTokenData(token, url, api_server) {
