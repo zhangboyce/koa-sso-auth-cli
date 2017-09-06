@@ -1,6 +1,6 @@
 'use strict';
 
-let koa_session = require('koa-session');
+let koa_session = require('koa-generic-session');
 let rp = require('request-promise');
 let router = require('koa-router')();
 
@@ -38,7 +38,11 @@ function SSOMiddleware(app, opts = defaultOpts){
     }
 
     app.keys = app.keys || ['koa-sso-auth-cli-2016','keys'];
-    if (!app.context.sessionKey) app.use(koa_session(app));
+    if (!app.context.sessionKey) app.use(koa_session({
+        cookie: {
+            maxAge: 24 * 60 * 60 * 1000 * 30
+        }
+    }));
 
     let sso_server = opts['sso_server'];
     let sso_api_server = opts['sso_api_server'] || sso_server ;
@@ -104,6 +108,8 @@ function getToken(sso_server, sso_api_server,  auth_callback_url) {
             if (json.status) {
                 let redirectUrl = this.session.currentUrl || '/';
                 let token = json.result;
+
+                yield this.regenerateSession();
                 this.session.token = token;
 
                 let account = yield SSO_API_Client.getUserInfo(token, sso_api_server);

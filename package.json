@@ -1,6 +1,6 @@
 {
   "name": "koa-sso-auth-cli",
-  "version": "1.4.3",
+  "version": "2.4.3",
   "description": "",
   "repository": "zhangboyce/koa-sso-auth-cli",
   "keywords": [
@@ -12,7 +12,7 @@
   ],
   "dependencies": {
     "koa-router": "^5.4.0",
-    "koa-session": "^3.3.1",
+    "koa-generic-session": "^1.11.5",
     "request-promise": "^4.2.0",
     "request": "^2.81.0",
     "lodash": "^4.17.4"
