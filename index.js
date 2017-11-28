@@ -73,7 +73,7 @@ function auth(sso_server, sso_api_server , auth_callback_url) {
                         this.session.account = account;
                     }
                     if(!AuthorizationUtils.checkKoaDefaultModule(this)) {
-                        this.body = '404!';
+                        this.body = '<script type="text/javascript">alert("系统未对外开放");location.href="http://www.brainboom.cn";</script>';
                         return;
                     }
                 }
